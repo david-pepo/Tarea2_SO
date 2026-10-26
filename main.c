@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "tablero.h"
 
 int main(int argc, char *argv[]) {
     if (argc < 3 || argc > 4) {
@@ -18,6 +19,10 @@ int main(int argc, char *argv[]) {
     if (archivo_config) {
         printf("Cargando configuracion desde: %s\n", archivo_config);
     }
+
+    Tablero mesa_principal;
+    inicializar_tablero(&mesa_principal);
+    imprimir_tablero(&mesa_principal);
 
     return 0;
 }
