@@ -61,3 +61,34 @@ void imprimir_tablero(Tablero *t) {
     }
     printf("--------------------------------------\n\n");
 }
+int calcular_casilla_salto(int origen, int medio) {
+    if (origen == 28 && medio == 26) return 22; 
+    if (origen == 22 && medio == 26) return 28; 
+    
+    if (origen == 28 && medio == 25) return 20; 
+    if (origen == 20 && medio == 25) return 28; 
+    
+    if (origen == 28 && medio == 27) return 24; 
+    if (origen == 24 && medio == 27) return 28; 
+
+    if (origen == 25 && medio == 26) return 27; 
+    if (origen == 27 && medio == 26) return 25; 
+
+    if (origen < 25 && medio < 25) {
+        int delta = medio - origen;
+        int destino = medio + delta; 
+
+        if (delta == 1 || delta == -1) {
+            if (destino >= 0 && destino < 25 && (origen / 5 == destino / 5)) {
+                return destino;
+            }
+        }
+        else if (delta == 5 || delta == -5) {
+            if (destino >= 0 && destino < 25) {
+                return destino;
+            }
+        }
+    }
+
+    return -1; 
+}

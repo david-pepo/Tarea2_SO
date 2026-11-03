@@ -76,8 +76,73 @@ void* funcion_pieza(void *arg) {
             }
         } 
         else if (args->tipo == PUMA) {
-            printf("[Mesa %d] PUMA %d (Casilla %02d) evaluando sus opciones...\n", 
-                   args->id_mesa, args->id_pieza, pos_actual);
+            int movido = 0;
+            
+            for (int i = 0; i < c_actual->num_adyacentes && !movido; i++) {
+                int id_medio = c_actual->adyacentes[i];
+                Casilla *c_medio = &t->casillas[id_medio];
+                
+                if (c_medio->ocupante == PERRO) {
+                    int id_destino = calcular_casilla_salto(pos_actual, id_medio);
+                    
+                    if (id_destino != -1) {
+                        Casilla *c_destino = &t->casillas[id_destino];
+                        
+                        if (pthread_mutex_trylock(&c_destino->mutex_casilla) == 0) {
+                            if (c_destino->ocupante == VACIO) {
+                                
+                                if (pthread_mutex_trylock(&c_medio->mutex_casilla) == 0) {
+                                    if (c_medio->ocupante == PERRO) {
+                                        
+                                        pthread_mutex_lock(&c_actual->mutex_casilla);
+                                        
+                                        c_destino->ocupante = PUMA;
+                                        c_medio->ocupante = VACIO; 
+                                        c_actual->ocupante = VACIO;
+                                        args->pos_actual = id_destino;
+                                        
+                                        printf(">>> [Mesa %d] PUMA %d SALTO sobre PERRO en %02d y cayo en %02d! <<<\n", 
+                                               args->id_mesa, args->id_pieza, id_medio, id_destino);
+                                        
+                                        movido = 1;
+                                        
+                                        pthread_mutex_unlock(&c_actual->mutex_casilla);
+                                    }
+                                    pthread_mutex_unlock(&c_medio->mutex_casilla);
+                                }
+                            }
+                            pthread_mutex_unlock(&c_destino->mutex_casilla);
+                        }
+                    }
+                }
+            }
+            
+            for (int i = 0; i < c_actual->num_adyacentes && !movido; i++) {
+                int id_destino = c_actual->adyacentes[i];
+                Casilla *c_destino = &t->casillas[id_destino];
+                
+                if (pthread_mutex_trylock(&c_destino->mutex_casilla) == 0) {
+                    if (c_destino->ocupante == VACIO) {
+                        pthread_mutex_lock(&c_actual->mutex_casilla);
+                        
+                        c_destino->ocupante = PUMA;
+                        c_actual->ocupante = VACIO;
+                        args->pos_actual = id_destino;
+                        
+                        printf("[Mesa %d] PUMA %d avanzo de forma simple: %02d -> %02d\n", 
+                               args->id_mesa, args->id_pieza, pos_actual, id_destino);
+                        
+                        movido = 1;
+                        pthread_mutex_unlock(&c_actual->mutex_casilla);
+                    }
+                    pthread_mutex_unlock(&c_destino->mutex_casilla);
+                }
+            }
+            
+            if (!movido) {
+                printf("[Mesa %d] PUMA %d en casilla %02d bloqueado temporalmente.\n", 
+                       args->id_mesa, args->id_pieza, pos_actual);
+            }
         }
         
         movimientos_simulados--;

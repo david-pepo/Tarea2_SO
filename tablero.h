@@ -26,5 +26,5 @@ typedef struct {
 
 void inicializar_tablero(Tablero *t);
 void imprimir_tablero(Tablero *t);
-
+int calcular_casilla_salto(int origen, int medio);
 #endif
