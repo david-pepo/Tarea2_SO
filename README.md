@@ -10,8 +10,3 @@ El proyecto resuelve la sincronización y el acceso a la memoria compartida medi
 ## Requisitos
 * Compilador GCC con soporte para el estándar C17.
 * Librería POSIX Threads (`pthread`).
-
-## Compilación
-Para compilar el proyecto, ejecuta el Makefile incluido en la raíz del repositorio:
-```bash
-make
