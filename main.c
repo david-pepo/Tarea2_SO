@@ -40,11 +40,45 @@ void* funcion_pieza(void *arg) {
         ts.tv_nsec = retardo_ms * 1000000L; 
         nanosleep(&ts, NULL);
         
-        printf("[Mesa %d] %s %d (Casilla %02d) desperto tras %d ms y busca moverse...\n", 
-               args->id_mesa, 
-               (args->tipo == PUMA) ? "PUMA" : "PERRO", 
-               args->id_pieza, args->pos_actual, retardo_ms);
-               
+        Tablero *t = args->mesa_local;
+        int pos_actual = args->pos_actual;
+        Casilla *c_actual = &t->casillas[pos_actual];
+        
+        if (args->tipo == PERRO) {
+            int movido = 0;
+            for (int i = 0; i < c_actual->num_adyacentes && !movido; i++) {
+                int id_destino = c_actual->adyacentes[i];
+                Casilla *c_destino = &t->casillas[id_destino];
+                
+                if (pthread_mutex_trylock(&c_destino->mutex_casilla) == 0) {
+                    
+                    if (c_destino->ocupante == VACIO) {
+                        
+                        pthread_mutex_lock(&c_actual->mutex_casilla);
+                        
+                        c_destino->ocupante = PERRO;
+                        c_actual->ocupante = VACIO;
+                        args->pos_actual = id_destino;
+                        
+                        printf("[Mesa %d] PERRO %d avanzo: %02d -> %02d\n", 
+                               args->id_mesa, args->id_pieza, pos_actual, id_destino);
+                        
+                        movido = 1;
+                        pthread_mutex_unlock(&c_actual->mutex_casilla);
+                    }
+                    
+                    pthread_mutex_unlock(&c_destino->mutex_casilla);
+                }
+            }
+            if (!movido) {
+                printf("[Mesa %d] PERRO %d en casilla %02d no encontro movimientos validos.\n", 
+                       args->id_mesa, args->id_pieza, pos_actual);
+            }
+        } 
+        else if (args->tipo == PUMA) {
+            printf("[Mesa %d] PUMA %d (Casilla %02d) evaluando sus opciones...\n", 
+                   args->id_mesa, args->id_pieza, pos_actual);
+        }
         
         movimientos_simulados--;
     }
