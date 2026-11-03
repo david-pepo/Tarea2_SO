@@ -5,23 +5,77 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "tablero.h"
+#include <time.h>
 
 typedef struct {
     int id_partida;
     sem_t *semaforo_mesas;
 } ArgJuez;
 
+typedef struct {
+    int id_pieza;
+    int tipo; 
+    int id_mesa;
+    Tablero *mesa_local;
+} ArgPieza;
+
+void* funcion_pieza(void *arg) {
+    ArgPieza *args = (ArgPieza*)arg;
+    
+    unsigned int semilla = time(NULL) ^ (args->id_mesa << 16) ^ args->id_pieza;
+    
+    int movimientos_simulados = 3; 
+    
+    while (movimientos_simulados > 0) {
+        int retardo_ms = (rand_r(&semilla) % 251) + 50;
+        struct timespec ts;
+        ts.tv_sec = 0; 
+        ts.tv_nsec = retardo_ms * 1000000L; // Convertir ms a nanosegundos
+        nanosleep(&ts, NULL);
+        
+        printf("[Mesa %d] %s %d despertó tras %d ms y busca moverse...\n", 
+               args->id_mesa, 
+               (args->tipo == PUMA) ? "PUMA" : "PERRO", 
+               args->id_pieza, retardo_ms);
+               
+        
+        movimientos_simulados--;
+    }
+    
+    free(args);
+    pthread_exit(NULL);
+}
+
 void* funcion_juez(void *arg) {
     ArgJuez *args = (ArgJuez*)arg;
+    int id = args->id_partida;
     
-    printf("[Juez %d] Mesa asignada. Iniciando simulacion de la partida...\n", args->id_partida);
+    printf("[Juez %d] Mesa asignada. Preparando tablero local y competidores...\n", id);
     
-    sleep(2); 
+    Tablero mesa_local;
+    inicializar_tablero(&mesa_local);
     
-    printf("[Juez %d] Partida finalizada. Liberando mesa...\n", args->id_partida);
+    pthread_t hilos_piezas[13];
+    
+    for (int i = 0; i < 13; i++) {
+        ArgPieza *arg_pieza = malloc(sizeof(ArgPieza));
+        arg_pieza->id_mesa = id;
+        arg_pieza->id_pieza = i;
+        arg_pieza->tipo = (i == 0) ? PUMA : PERRO;
+        arg_pieza->mesa_local = &mesa_local;
+        
+        if (pthread_create(&hilos_piezas[i], NULL, funcion_pieza, arg_pieza) != 0) {
+            perror("Error al crear hilo de pieza");
+        }
+    }
+    
+    for (int i = 0; i < 13; i++) {
+        pthread_join(hilos_piezas[i], NULL);
+    }
+    
+    printf("[Juez %d] Partida finalizada. Liberando mesa...\n", id);
     
     sem_post(args->semaforo_mesas);
-    
     free(args);
     pthread_exit(NULL);
 }
