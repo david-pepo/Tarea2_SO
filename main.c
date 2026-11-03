@@ -207,6 +207,23 @@ void* funcion_juez(void *arg) {
         }
     }
     
+    while (1) {
+        pthread_mutex_lock(&mesa_local.mutex_estado);
+        int terminado = mesa_local.juego_terminado;
+        pthread_mutex_unlock(&mesa_local.mutex_estado);
+        
+        if (terminado) {
+            break; 
+        }
+        
+        imprimir_tablero_visual(&mesa_local, id);
+        
+        struct timespec ts_juez;
+        ts_juez.tv_sec = 0;
+        ts_juez.tv_nsec = 500000000L; 
+        nanosleep(&ts_juez, NULL);
+    }
+    
     for (int i = 0; i < 13; i++) {
         pthread_join(hilos_piezas[i], NULL);
     }

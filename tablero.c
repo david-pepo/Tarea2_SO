@@ -19,7 +19,7 @@ void inicializar_tablero(Tablero *t) {
     t->perros_capturados = 0;
     t->juego_terminado = 0;
     pthread_mutex_init(&t->mutex_estado, NULL);
-    
+
     for (int i = 0; i < t->total_casillas; i++) {
         t->casillas[i].id = i;
         t->casillas[i].ocupante = VACIO;
@@ -95,4 +95,39 @@ int calcular_casilla_salto(int origen, int medio) {
     }
 
     return -1; 
+}
+static char obtener_simbolo(int ocupante) {
+    if (ocupante == PUMA) return 'P';
+    if (ocupante == PERRO) return 'X';
+    return '.'; 
+}
+
+void imprimir_tablero_visual(Tablero *t, int id_mesa) {
+    for (int i = 0; i < 29; i++) {
+        pthread_mutex_lock(&t->casillas[i].mutex_casilla);
+    }
+
+    printf("\n============= MESA %d =============\n", id_mesa);
+    printf("             [%c]\n", obtener_simbolo(t->casillas[28].ocupante));
+    printf("           /  |  \\\n");
+    printf("         [%c]-[%c]-[%c]\n", 
+           obtener_simbolo(t->casillas[25].ocupante), 
+           obtener_simbolo(t->casillas[26].ocupante), 
+           obtener_simbolo(t->casillas[27].ocupante));
+    printf("          |  / | \\  |\n");
+    
+    for (int r = 4; r >= 0; r--) {
+        int base = r * 5;
+        printf("        [%c]-[%c]-[%c]-[%c]-[%c]\n",
+               obtener_simbolo(t->casillas[base].ocupante),
+               obtener_simbolo(t->casillas[base + 1].ocupante),
+               obtener_simbolo(t->casillas[base + 2].ocupante),
+               obtener_simbolo(t->casillas[base + 3].ocupante),
+               obtener_simbolo(t->casillas[base + 4].ocupante));
+    }
+    printf("===================================\n\n");
+
+    for (int i = 0; i < 29; i++) {
+        pthread_mutex_unlock(&t->casillas[i].mutex_casilla);
+    }
 }
