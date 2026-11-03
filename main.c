@@ -31,16 +31,24 @@ void* funcion_pieza(void *arg) {
     
     unsigned int semilla = time(NULL) ^ (args->id_mesa << 16) ^ args->id_pieza;
     
-    int movimientos_simulados = 3; 
-    
-    while (movimientos_simulados > 0) {
+    Tablero *t = args->mesa_local;
+
+    int fallos_consecutivos = 0;
+
+    while (1) {
+        pthread_mutex_lock(&t->mutex_estado);
+        if (t->juego_terminado) {
+            pthread_mutex_unlock(&t->mutex_estado);
+            break; 
+        }
+        pthread_mutex_unlock(&t->mutex_estado);
+
         int retardo_ms = (rand_r(&semilla) % 251) + 50;
         struct timespec ts;
         ts.tv_sec = 0; 
         ts.tv_nsec = retardo_ms * 1000000L; 
         nanosleep(&ts, NULL);
         
-        Tablero *t = args->mesa_local;
         int pos_actual = args->pos_actual;
         Casilla *c_actual = &t->casillas[pos_actual];
         
@@ -104,6 +112,15 @@ void* funcion_pieza(void *arg) {
                                         printf(">>> [Mesa %d] PUMA %d SALTO sobre PERRO en %02d y cayo en %02d! <<<\n", 
                                                args->id_mesa, args->id_pieza, id_medio, id_destino);
                                         
+                                        pthread_mutex_lock(&t->mutex_estado);
+                                        t->perros_capturados++;
+                                        if (t->perros_capturados >= 6) {
+                                            t->juego_terminado = 1;
+                                            printf("\n🏆 [Mesa %d] ¡VICTORIA DEL PUMA! Ha capturado %d perros.\n\n", 
+                                                   args->id_mesa, t->perros_capturados);
+                                        }
+                                        pthread_mutex_unlock(&t->mutex_estado);
+                                        
                                         movido = 1;
                                         
                                         pthread_mutex_unlock(&c_actual->mutex_casilla);
@@ -140,12 +157,20 @@ void* funcion_pieza(void *arg) {
             }
             
             if (!movido) {
-                printf("[Mesa %d] PUMA %d en casilla %02d bloqueado temporalmente.\n", 
-                       args->id_mesa, args->id_pieza, pos_actual);
+                fallos_consecutivos++;
+                if (fallos_consecutivos >= 10) {
+                    pthread_mutex_lock(&t->mutex_estado);
+                    if (!t->juego_terminado) {
+                        t->juego_terminado = 1;
+                        printf("\n🦴 [Mesa %d] ¡VICTORIA DE LOS PERROS! El Puma fue acorralado en la casilla %02d.\n\n", 
+                               args->id_mesa, pos_actual);
+                    }
+                    pthread_mutex_unlock(&t->mutex_estado);
+                }
+            } else {
+                fallos_consecutivos = 0; 
             }
         }
-        
-        movimientos_simulados--;
     }
     
     free(args);

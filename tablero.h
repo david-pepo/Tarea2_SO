@@ -22,6 +22,9 @@ typedef struct {
 typedef struct {
     Casilla casillas[MAX_CASILLAS];
     int total_casillas;
+    int perros_capturados; 
+    int juego_terminado;   
+    pthread_mutex_t mutex_estado; 
 } Tablero;
 
 void inicializar_tablero(Tablero *t);

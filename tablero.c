@@ -15,6 +15,10 @@ void conectar_casillas(Tablero *t, int id1, int id2) {
 
 void inicializar_tablero(Tablero *t) {
     t->total_casillas = 29; 
+
+    t->perros_capturados = 0;
+    t->juego_terminado = 0;
+    pthread_mutex_init(&t->mutex_estado, NULL);
     
     for (int i = 0; i < t->total_casillas; i++) {
         t->casillas[i].id = i;
